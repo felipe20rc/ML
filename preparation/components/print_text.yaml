@@ -1,0 +1,20 @@
+name: Print text
+inputs:
+- {name: text, type: String}
+implementation:
+  container:
+    image: python:3.7
+    command:
+    - sh
+    - -ec
+    - |
+      program_path=$(mktemp)
+      printf "%s" "$0" > "$program_path"
+      python3 -u "$program_path" "$@"
+    - "def print_text(text): \n    print(text)\n\nimport argparse\n_parser = argparse.ArgumentParser(prog='Print\
+      \ text', description='')\n_parser.add_argument(\"--text\", dest=\"text\", type=str,\
+      \ required=True, default=argparse.SUPPRESS)\n_parsed_args = vars(_parser.parse_args())\n\
+      \n_outputs = print_text(**_parsed_args)\n"
+    args:
+    - --text
+    - {inputValue: text}

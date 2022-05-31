@@ -1,0 +1,359 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Workflow
+metadata:
+  generateName: my-pipeline-
+  annotations: {pipelines.kubeflow.org/kfp_sdk_version: 1.8.12, pipelines.kubeflow.org/pipeline_compilation_time: '2022-05-31T16:59:54.356256',
+    pipelines.kubeflow.org/pipeline_spec: '{"inputs": [{"default": "default text",
+      "name": "text", "optional": true, "type": "String"}], "name": "My pipeline"}'}
+  labels: {pipelines.kubeflow.org/kfp_sdk_version: 1.8.12}
+spec:
+  entrypoint: my-pipeline
+  templates:
+  - name: generate-one-string
+    container:
+      args: ['----output-paths', /tmp/outputs/Output/data]
+      command:
+      - sh
+      - -ec
+      - |
+        program_path=$(mktemp)
+        printf "%s" "$0" > "$program_path"
+        python3 -u "$program_path" "$@"
+      - |
+        def generate_one_string():
+            return "simple string"
+
+        def _serialize_str(str_value: str) -> str:
+            if not isinstance(str_value, str):
+                raise TypeError('Value "{}" has type "{}" instead of str.'.format(
+                    str(str_value), str(type(str_value))))
+            return str_value
+
+        import argparse
+        _parser = argparse.ArgumentParser(prog='Generate one string', description='')
+        _parser.add_argument("----output-paths", dest="_output_paths", type=str, nargs=1)
+        _parsed_args = vars(_parser.parse_args())
+        _output_files = _parsed_args.pop("_output_paths", [])
+
+        _outputs = generate_one_string(**_parsed_args)
+
+        _outputs = [_outputs]
+
+        _output_serializers = [
+            _serialize_str,
+
+        ]
+
+        import os
+        for idx, output_file in enumerate(_output_files):
+            try:
+                os.makedirs(os.path.dirname(output_file))
+            except OSError:
+                pass
+            with open(output_file, 'w') as f:
+                f.write(_output_serializers[idx](_outputs[idx]))
+      image: python:3.7
+    outputs:
+      parameters:
+      - name: generate-one-string-Output
+        valueFrom: {path: /tmp/outputs/Output/data}
+      artifacts:
+      - {name: generate-one-string-Output, path: /tmp/outputs/Output/data}
+    metadata:
+      labels:
+        pipelines.kubeflow.org/kfp_sdk_version: 1.8.12
+        pipelines.kubeflow.org/pipeline-sdk-type: kfp
+        pipelines.kubeflow.org/enable_caching: "true"
+      annotations: {pipelines.kubeflow.org/component_spec: '{"implementation": {"container":
+          {"args": ["----output-paths", {"outputPath": "Output"}], "command": ["sh",
+          "-ec", "program_path=$(mktemp)\nprintf \"%s\" \"$0\" > \"$program_path\"\npython3
+          -u \"$program_path\" \"$@\"\n", "def generate_one_string():\n    return
+          \"simple string\"\n\ndef _serialize_str(str_value: str) -> str:\n    if
+          not isinstance(str_value, str):\n        raise TypeError(''Value \"{}\"
+          has type \"{}\" instead of str.''.format(\n            str(str_value), str(type(str_value))))\n    return
+          str_value\n\nimport argparse\n_parser = argparse.ArgumentParser(prog=''Generate
+          one string'', description='''')\n_parser.add_argument(\"----output-paths\",
+          dest=\"_output_paths\", type=str, nargs=1)\n_parsed_args = vars(_parser.parse_args())\n_output_files
+          = _parsed_args.pop(\"_output_paths\", [])\n\n_outputs = generate_one_string(**_parsed_args)\n\n_outputs
+          = [_outputs]\n\n_output_serializers = [\n    _serialize_str,\n\n]\n\nimport
+          os\nfor idx, output_file in enumerate(_output_files):\n    try:\n        os.makedirs(os.path.dirname(output_file))\n    except
+          OSError:\n        pass\n    with open(output_file, ''w'') as f:\n        f.write(_output_serializers[idx](_outputs[idx]))\n"],
+          "image": "python:3.7"}}, "name": "Generate one string", "outputs": [{"name":
+          "Output", "type": "String"}]}', pipelines.kubeflow.org/component_ref: '{}'}
+  - name: generate-two-outputs
+    container:
+      args: ['----output-paths', /tmp/outputs/text/data, /tmp/outputs/number/data]
+      command:
+      - sh
+      - -ec
+      - |
+        program_path=$(mktemp)
+        printf "%s" "$0" > "$program_path"
+        python3 -u "$program_path" "$@"
+      - |
+        def generate_two_outputs():
+            return ("string part of multiple outputs", 35)
+
+        def _serialize_int(int_value: int) -> str:
+            if isinstance(int_value, str):
+                return int_value
+            if not isinstance(int_value, int):
+                raise TypeError('Value "{}" has type "{}" instead of int.'.format(
+                    str(int_value), str(type(int_value))))
+            return str(int_value)
+
+        def _serialize_str(str_value: str) -> str:
+            if not isinstance(str_value, str):
+                raise TypeError('Value "{}" has type "{}" instead of str.'.format(
+                    str(str_value), str(type(str_value))))
+            return str_value
+
+        import argparse
+        _parser = argparse.ArgumentParser(prog='Generate two outputs', description='')
+        _parser.add_argument("----output-paths", dest="_output_paths", type=str, nargs=2)
+        _parsed_args = vars(_parser.parse_args())
+        _output_files = _parsed_args.pop("_output_paths", [])
+
+        _outputs = generate_two_outputs(**_parsed_args)
+
+        _output_serializers = [
+            _serialize_str,
+            _serialize_int,
+
+        ]
+
+        import os
+        for idx, output_file in enumerate(_output_files):
+            try:
+                os.makedirs(os.path.dirname(output_file))
+            except OSError:
+                pass
+            with open(output_file, 'w') as f:
+                f.write(_output_serializers[idx](_outputs[idx]))
+      image: python:3.7
+    outputs:
+      parameters:
+      - name: generate-two-outputs-number
+        valueFrom: {path: /tmp/outputs/number/data}
+      - name: generate-two-outputs-text
+        valueFrom: {path: /tmp/outputs/text/data}
+      artifacts:
+      - {name: generate-two-outputs-number, path: /tmp/outputs/number/data}
+      - {name: generate-two-outputs-text, path: /tmp/outputs/text/data}
+    metadata:
+      labels:
+        pipelines.kubeflow.org/kfp_sdk_version: 1.8.12
+        pipelines.kubeflow.org/pipeline-sdk-type: kfp
+        pipelines.kubeflow.org/enable_caching: "true"
+      annotations: {pipelines.kubeflow.org/component_spec: '{"implementation": {"container":
+          {"args": ["----output-paths", {"outputPath": "text"}, {"outputPath": "number"}],
+          "command": ["sh", "-ec", "program_path=$(mktemp)\nprintf \"%s\" \"$0\" >
+          \"$program_path\"\npython3 -u \"$program_path\" \"$@\"\n", "def generate_two_outputs():\n    return
+          (\"string part of multiple outputs\", 35)\n\ndef _serialize_int(int_value:
+          int) -> str:\n    if isinstance(int_value, str):\n        return int_value\n    if
+          not isinstance(int_value, int):\n        raise TypeError(''Value \"{}\"
+          has type \"{}\" instead of int.''.format(\n            str(int_value), str(type(int_value))))\n    return
+          str(int_value)\n\ndef _serialize_str(str_value: str) -> str:\n    if not
+          isinstance(str_value, str):\n        raise TypeError(''Value \"{}\" has
+          type \"{}\" instead of str.''.format(\n            str(str_value), str(type(str_value))))\n    return
+          str_value\n\nimport argparse\n_parser = argparse.ArgumentParser(prog=''Generate
+          two outputs'', description='''')\n_parser.add_argument(\"----output-paths\",
+          dest=\"_output_paths\", type=str, nargs=2)\n_parsed_args = vars(_parser.parse_args())\n_output_files
+          = _parsed_args.pop(\"_output_paths\", [])\n\n_outputs = generate_two_outputs(**_parsed_args)\n\n_output_serializers
+          = [\n    _serialize_str,\n    _serialize_int,\n\n]\n\nimport os\nfor idx,
+          output_file in enumerate(_output_files):\n    try:\n        os.makedirs(os.path.dirname(output_file))\n    except
+          OSError:\n        pass\n    with open(output_file, ''w'') as f:\n        f.write(_output_serializers[idx](_outputs[idx]))\n"],
+          "image": "python:3.7"}}, "name": "Generate two outputs", "outputs": [{"name":
+          "text", "type": "String"}, {"name": "number", "type": "Integer"}]}', pipelines.kubeflow.org/component_ref: '{}'}
+  - name: my-pipeline
+    inputs:
+      parameters:
+      - {name: text}
+    dag:
+      tasks:
+      - {name: generate-one-string, template: generate-one-string}
+      - {name: generate-two-outputs, template: generate-two-outputs}
+      - name: print-multiple-outputs
+        template: print-multiple-outputs
+        dependencies: [generate-one-string, generate-two-outputs]
+        arguments:
+          parameters:
+          - {name: generate-one-string-Output, value: '{{tasks.generate-one-string.outputs.parameters.generate-one-string-Output}}'}
+          - {name: generate-two-outputs-number, value: '{{tasks.generate-two-outputs.outputs.parameters.generate-two-outputs-number}}'}
+      - name: print-multiple-outputs-2
+        template: print-multiple-outputs-2
+        dependencies: [generate-two-outputs]
+        arguments:
+          parameters:
+          - {name: generate-two-outputs-number, value: '{{tasks.generate-two-outputs.outputs.parameters.generate-two-outputs-number}}'}
+          - {name: text, value: '{{inputs.parameters.text}}'}
+      - name: print-text
+        template: print-text
+        arguments:
+          parameters:
+          - {name: text, value: '{{inputs.parameters.text}}'}
+      - name: print-text-2
+        template: print-text-2
+        dependencies: [generate-two-outputs]
+        arguments:
+          parameters:
+          - {name: generate-two-outputs-text, value: '{{tasks.generate-two-outputs.outputs.parameters.generate-two-outputs-text}}'}
+  - name: print-multiple-outputs
+    container:
+      args: [--text, '{{inputs.parameters.generate-one-string-Output}}', --number,
+        '{{inputs.parameters.generate-two-outputs-number}}']
+      command:
+      - sh
+      - -ec
+      - |
+        program_path=$(mktemp)
+        printf "%s" "$0" > "$program_path"
+        python3 -u "$program_path" "$@"
+      - |
+        def print_multiple_outputs(text,number):
+            print(f'the number is: {number}')
+            print(f'the text is: {text}')
+
+        import argparse
+        _parser = argparse.ArgumentParser(prog='Print multiple outputs', description='')
+        _parser.add_argument("--text", dest="text", type=str, required=True, default=argparse.SUPPRESS)
+        _parser.add_argument("--number", dest="number", type=int, required=True, default=argparse.SUPPRESS)
+        _parsed_args = vars(_parser.parse_args())
+
+        _outputs = print_multiple_outputs(**_parsed_args)
+      image: python:3.7
+    inputs:
+      parameters:
+      - {name: generate-one-string-Output}
+      - {name: generate-two-outputs-number}
+    metadata:
+      labels:
+        pipelines.kubeflow.org/kfp_sdk_version: 1.8.12
+        pipelines.kubeflow.org/pipeline-sdk-type: kfp
+        pipelines.kubeflow.org/enable_caching: "true"
+      annotations: {pipelines.kubeflow.org/component_spec: '{"implementation": {"container":
+          {"args": ["--text", {"inputValue": "text"}, "--number", {"inputValue": "number"}],
+          "command": ["sh", "-ec", "program_path=$(mktemp)\nprintf \"%s\" \"$0\" >
+          \"$program_path\"\npython3 -u \"$program_path\" \"$@\"\n", "def print_multiple_outputs(text,number):\n    print(f''the
+          number is: {number}'')\n    print(f''the text is: {text}'')\n\nimport argparse\n_parser
+          = argparse.ArgumentParser(prog=''Print multiple outputs'', description='''')\n_parser.add_argument(\"--text\",
+          dest=\"text\", type=str, required=True, default=argparse.SUPPRESS)\n_parser.add_argument(\"--number\",
+          dest=\"number\", type=int, required=True, default=argparse.SUPPRESS)\n_parsed_args
+          = vars(_parser.parse_args())\n\n_outputs = print_multiple_outputs(**_parsed_args)\n"],
+          "image": "python:3.7"}}, "inputs": [{"name": "text", "type": "String"},
+          {"name": "number", "type": "Integer"}], "name": "Print multiple outputs"}',
+        pipelines.kubeflow.org/component_ref: '{}', pipelines.kubeflow.org/arguments.parameters: '{"number":
+          "{{inputs.parameters.generate-two-outputs-number}}", "text": "{{inputs.parameters.generate-one-string-Output}}"}'}
+  - name: print-multiple-outputs-2
+    container:
+      args: [--text, '{{inputs.parameters.text}}', --number, '{{inputs.parameters.generate-two-outputs-number}}']
+      command:
+      - sh
+      - -ec
+      - |
+        program_path=$(mktemp)
+        printf "%s" "$0" > "$program_path"
+        python3 -u "$program_path" "$@"
+      - |
+        def print_multiple_outputs(text,number):
+            print(f'the number is: {number}')
+            print(f'the text is: {text}')
+
+        import argparse
+        _parser = argparse.ArgumentParser(prog='Print multiple outputs', description='')
+        _parser.add_argument("--text", dest="text", type=str, required=True, default=argparse.SUPPRESS)
+        _parser.add_argument("--number", dest="number", type=int, required=True, default=argparse.SUPPRESS)
+        _parsed_args = vars(_parser.parse_args())
+
+        _outputs = print_multiple_outputs(**_parsed_args)
+      image: python:3.7
+    inputs:
+      parameters:
+      - {name: generate-two-outputs-number}
+      - {name: text}
+    metadata:
+      labels:
+        pipelines.kubeflow.org/kfp_sdk_version: 1.8.12
+        pipelines.kubeflow.org/pipeline-sdk-type: kfp
+        pipelines.kubeflow.org/enable_caching: "true"
+      annotations: {pipelines.kubeflow.org/component_spec: '{"implementation": {"container":
+          {"args": ["--text", {"inputValue": "text"}, "--number", {"inputValue": "number"}],
+          "command": ["sh", "-ec", "program_path=$(mktemp)\nprintf \"%s\" \"$0\" >
+          \"$program_path\"\npython3 -u \"$program_path\" \"$@\"\n", "def print_multiple_outputs(text,number):\n    print(f''the
+          number is: {number}'')\n    print(f''the text is: {text}'')\n\nimport argparse\n_parser
+          = argparse.ArgumentParser(prog=''Print multiple outputs'', description='''')\n_parser.add_argument(\"--text\",
+          dest=\"text\", type=str, required=True, default=argparse.SUPPRESS)\n_parser.add_argument(\"--number\",
+          dest=\"number\", type=int, required=True, default=argparse.SUPPRESS)\n_parsed_args
+          = vars(_parser.parse_args())\n\n_outputs = print_multiple_outputs(**_parsed_args)\n"],
+          "image": "python:3.7"}}, "inputs": [{"name": "text", "type": "String"},
+          {"name": "number", "type": "Integer"}], "name": "Print multiple outputs"}',
+        pipelines.kubeflow.org/component_ref: '{}', pipelines.kubeflow.org/arguments.parameters: '{"number":
+          "{{inputs.parameters.generate-two-outputs-number}}", "text": "{{inputs.parameters.text}}"}'}
+  - name: print-text
+    container:
+      args: [--text, '{{inputs.parameters.text}}']
+      command:
+      - sh
+      - -ec
+      - |
+        program_path=$(mktemp)
+        printf "%s" "$0" > "$program_path"
+        python3 -u "$program_path" "$@"
+      - "def print_text(text): \n    print(text)\n\nimport argparse\n_parser = argparse.ArgumentParser(prog='Print\
+        \ text', description='')\n_parser.add_argument(\"--text\", dest=\"text\",\
+        \ type=str, required=True, default=argparse.SUPPRESS)\n_parsed_args = vars(_parser.parse_args())\n\
+        \n_outputs = print_text(**_parsed_args)\n"
+      image: python:3.7
+    inputs:
+      parameters:
+      - {name: text}
+    metadata:
+      labels:
+        pipelines.kubeflow.org/kfp_sdk_version: 1.8.12
+        pipelines.kubeflow.org/pipeline-sdk-type: kfp
+        pipelines.kubeflow.org/enable_caching: "true"
+      annotations: {pipelines.kubeflow.org/component_spec: '{"implementation": {"container":
+          {"args": ["--text", {"inputValue": "text"}], "command": ["sh", "-ec", "program_path=$(mktemp)\nprintf
+          \"%s\" \"$0\" > \"$program_path\"\npython3 -u \"$program_path\" \"$@\"\n",
+          "def print_text(text): \n    print(text)\n\nimport argparse\n_parser = argparse.ArgumentParser(prog=''Print
+          text'', description='''')\n_parser.add_argument(\"--text\", dest=\"text\",
+          type=str, required=True, default=argparse.SUPPRESS)\n_parsed_args = vars(_parser.parse_args())\n\n_outputs
+          = print_text(**_parsed_args)\n"], "image": "python:3.7"}}, "inputs": [{"name":
+          "text", "type": "String"}], "name": "Print text"}', pipelines.kubeflow.org/component_ref: '{}',
+        pipelines.kubeflow.org/arguments.parameters: '{"text": "{{inputs.parameters.text}}"}'}
+  - name: print-text-2
+    container:
+      args: [--text, '{{inputs.parameters.generate-two-outputs-text}}']
+      command:
+      - sh
+      - -ec
+      - |
+        program_path=$(mktemp)
+        printf "%s" "$0" > "$program_path"
+        python3 -u "$program_path" "$@"
+      - "def print_text(text): \n    print(text)\n\nimport argparse\n_parser = argparse.ArgumentParser(prog='Print\
+        \ text', description='')\n_parser.add_argument(\"--text\", dest=\"text\",\
+        \ type=str, required=True, default=argparse.SUPPRESS)\n_parsed_args = vars(_parser.parse_args())\n\
+        \n_outputs = print_text(**_parsed_args)\n"
+      image: python:3.7
+    inputs:
+      parameters:
+      - {name: generate-two-outputs-text}
+    metadata:
+      labels:
+        pipelines.kubeflow.org/kfp_sdk_version: 1.8.12
+        pipelines.kubeflow.org/pipeline-sdk-type: kfp
+        pipelines.kubeflow.org/enable_caching: "true"
+      annotations: {pipelines.kubeflow.org/component_spec: '{"implementation": {"container":
+          {"args": ["--text", {"inputValue": "text"}], "command": ["sh", "-ec", "program_path=$(mktemp)\nprintf
+          \"%s\" \"$0\" > \"$program_path\"\npython3 -u \"$program_path\" \"$@\"\n",
+          "def print_text(text): \n    print(text)\n\nimport argparse\n_parser = argparse.ArgumentParser(prog=''Print
+          text'', description='''')\n_parser.add_argument(\"--text\", dest=\"text\",
+          type=str, required=True, default=argparse.SUPPRESS)\n_parsed_args = vars(_parser.parse_args())\n\n_outputs
+          = print_text(**_parsed_args)\n"], "image": "python:3.7"}}, "inputs": [{"name":
+          "text", "type": "String"}], "name": "Print text"}', pipelines.kubeflow.org/component_ref: '{}',
+        pipelines.kubeflow.org/arguments.parameters: '{"text": "{{inputs.parameters.generate-two-outputs-text}}"}'}
+  arguments:
+    parameters:
+    - {name: text, value: default text}
+  serviceAccountName: pipeline-runner

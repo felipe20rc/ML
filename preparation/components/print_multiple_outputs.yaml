@@ -1,0 +1,31 @@
+name: Print multiple outputs
+inputs:
+- {name: text, type: String}
+- {name: number, type: Integer}
+implementation:
+  container:
+    image: python:3.7
+    command:
+    - sh
+    - -ec
+    - |
+      program_path=$(mktemp)
+      printf "%s" "$0" > "$program_path"
+      python3 -u "$program_path" "$@"
+    - |
+      def print_multiple_outputs(text,number):
+          print(f'the number is: {number}')
+          print(f'the text is: {text}')
+
+      import argparse
+      _parser = argparse.ArgumentParser(prog='Print multiple outputs', description='')
+      _parser.add_argument("--text", dest="text", type=str, required=True, default=argparse.SUPPRESS)
+      _parser.add_argument("--number", dest="number", type=int, required=True, default=argparse.SUPPRESS)
+      _parsed_args = vars(_parser.parse_args())
+
+      _outputs = print_multiple_outputs(**_parsed_args)
+    args:
+    - --text
+    - {inputValue: text}
+    - --number
+    - {inputValue: number}
