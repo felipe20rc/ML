@@ -1,0 +1,30 @@
+name: Add
+inputs:
+- {name: a, type: Integer}
+- {name: b, type: Integer}
+implementation:
+  container:
+    image: python:3.7
+    command:
+    - sh
+    - -ec
+    - |
+      program_path=$(mktemp)
+      printf "%s" "$0" > "$program_path"
+      python3 -u "$program_path" "$@"
+    - |
+      def add(a , b):
+          return a + b
+
+      import argparse
+      _parser = argparse.ArgumentParser(prog='Add', description='')
+      _parser.add_argument("--a", dest="a", type=int, required=True, default=argparse.SUPPRESS)
+      _parser.add_argument("--b", dest="b", type=int, required=True, default=argparse.SUPPRESS)
+      _parsed_args = vars(_parser.parse_args())
+
+      _outputs = add(**_parsed_args)
+    args:
+    - --a
+    - {inputValue: a}
+    - --b
+    - {inputValue: b}
